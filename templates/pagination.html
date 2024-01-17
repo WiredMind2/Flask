@@ -1,0 +1,32 @@
+{% macro render_pagination(page, count) %}
+    <nav>
+        <ul class="pagination justify-content-center pt-3">
+            {% if page-1 > 0 %}
+                <li class="page-item">
+                    <a class="page-link bg-transparent border-secondary"
+                       href="{{ url_for('index', page=[1, page - 4]|max) }}"
+                       aria-label="Previous">
+                        <span aria-hidden="true">
+                            {{ '<' }}
+                        </span>
+                    </a>
+                </li>
+            {% endif %}
+            {% for i in range(1, [count // 20, [1, page - 1]|max + 4]|min) %}
+                <li class="page-item {{ "active" if i == page + 1 else "" }}">
+                    <a class="page-link bg-transparent {{ "border-secondary" if i != page + 1 else "" }}"
+                       href="{{ url_for('index', page=i) }}">{{ i }}</a>
+                </li>
+            {% endfor %}
+            {% if (page + 3) * 20 < count %}
+                <li class="page-item">
+                    <a class="page-link bg-transparent border-secondary"
+                       href="{{ url_for('index', page=[count // 20, page + 6]|min) }}"
+                       aria-label="Next">
+                        <span aria-hidden="true">{{ '>' }}</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endmacro %}

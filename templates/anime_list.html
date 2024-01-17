@@ -1,0 +1,36 @@
+{% import "pagination.html" as pagination %}
+{% macro render_animelist(animelist, count, page=0) %}
+  <div class="album pb-5 bg-dark bg-gradient">
+    <div class="container">
+      {{ pagination.render_pagination(page, count) }}
+      {% if count > 0 %}
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+          {% for v in animelist %}
+            {% if v != None %}
+              <div class="col">
+                <div class="card shadow-sm bg-dark text-light h-100">
+                  <a href="{{ url_for('anime_info', id=v.id) }}">
+                    <img src="{{ v.picture }}"
+                         onerror="if (this.src != '{{ url_for('static', filename='NotFound.svg') }}') this.src = '{{ url_for('static', filename='NotFound.svg') }}';"
+                         class="img-fluid card-img-top"
+                         alt="Couldn't load the image cover!" />
+                  </a>
+                  <div class="card-body">
+                    <h5 class="card-title text-center">{{ v.title }}</h5>
+                    <p class="card-text">{{ v.synopsis|cropText(150) }}</p>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% elif animelist == "loading" %}
+        <p data-loading='true'>Loading...</p>
+      {% else %}
+        <p>No data, try to login to your account!</p>
+        {# <p>Also, you shouldn't be able to see this message, something is probably broken (again).</p> #}
+      {% endif %}
+      {{ pagination.render_pagination(page, count) }}
+    </div>
+  </div>
+{% endmacro %}

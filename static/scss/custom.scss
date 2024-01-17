@@ -1,0 +1,30 @@
+@import "../../node_modules/bootstrap/scss/bootstrap.scss";
+
+
+$seen_color:#98E22B;
+$watching_color:#E79622;
+$watchlist_color:#56D8EF;
+$none_color:#F0F0FF;
+  
+.btn-outline-primary-seen {
+    @include button-outline-variant($seen_color, #222222, lighten($seen_color,5%), $seen_color);
+}
+    
+.btn-outline-primary-watching {
+    @include button-outline-variant($watching_color, #222222, lighten($watching_color,5%), $watching_color);
+}
+    
+.btn-outline-primary-watchlist {
+    @include button-outline-variant($watchlist_color, #222222, lighten($watchlist_color,5%), $watchlist_color);
+}
+
+.btn-outline-primary-none {
+    @include button-outline-variant($none_color, #222222, lighten($none_color,5%), $none_color);
+}
+
+$theme-colors: (
+	seen:  $seen_color,
+	watching:  $watchlist_color,
+	watchlist:  $watchlist_color,
+	notag:  $none_color,
+);
