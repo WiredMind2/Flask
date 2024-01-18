@@ -2,6 +2,8 @@
 
 import logging
 import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 import constants
 logging.basicConfig(stream=sys.stderr)
 sys.path.insert(0, '/home/user/www/flask/')
