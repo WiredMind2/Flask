@@ -2,10 +2,12 @@ import json
 from flask import Flask, abort, get_template_attribute, jsonify, render_template, request, session, stream_with_context
 from database import dbWrapper
 import secret
-import utils
+from utils import Utils
 import constants
 import sys
-sys.path.append('D:\willi\Documents\Python')
+import os
+if sys.platform == 'win32':
+	sys.path.append(os.path.join(os.path.expanduser('~'), 'Documents/Python'))
 from AnimeManager import Manager, AnimeList
 
 routes = []
@@ -15,38 +17,32 @@ def route(*args, **kwargs):
 		return func
 	return wrapper
 
-class App:
-	def __init__(self, app=None):
-		if app is None:
-			self.app = Flask(__name__)
-		else:
-			self.app = app
-		self.app.secret_key = secret.SECRET_KEY
+class App(Flask, Utils):
+	def __init__(self, name=None):
+		super().__init__(name or __name__)
+		self.secret_key = secret.SECRET_KEY
 
 		self.userDb = dbWrapper()
 		self.main = Manager(remote=True)
 		
 		self.db = self.main.getDatabase()
 
-		for sub in dir(utils):
-			if sub not in utils.__builtins__.keys():
-				func = eval(f'utils.{sub}')
+		for sub in dir(Utils):
+			if sub[:1] != '__':
+				func = eval(f'self.{sub}')
 				if callable(func):
-					self.app.jinja_env.filters[sub] = func
+					self.jinja_env.filters[sub] = func
      
 		for func, args, kwargs in routes:
 			f = eval(f'self.{func.__name__}')
-			self.app.route(*args, **kwargs)(f)
+			self.route(*args, **kwargs)(f)
 
-		self.app.context_processor(self.handle_context)
+		self.context_processor(self.handle_context)
 
 	# @app.context_processor
 	def handle_context(self):
 		data = {k: eval(f'constants.{k}') for k in dir(constants) if k not in constants.__builtins__.keys() and k[:2] != '__'}
 		return data
-
-	def run(self, *args, **kwargs):
-		return self.app.run(*args, **kwargs)
 
 	@route('/')
 	def index(self):
@@ -70,14 +66,14 @@ class App:
 		animelist = list(animelist)
 
 		count = len(animelist)
-		return render_template('index.html', animes=animelist, count=count, page=page)
+		return render_template('index.jinja', animes=animelist, count=count, page=page)
 
 	@route('/anime_info/<id>') # add a parameter 'id'
 	def anime_info(self, id):
 		tags = ("SEEN", "WATCHING", "WATCHLIST", "NONE")
 		
 		anime = self.db.get(id, 'anime')
-		return render_template('anime_info.html', anime=anime, tags=tags)
+		return render_template('anime_info.jinja', anime=anime, tags=tags)
 
 	@route('/anime_info/updateTag', methods=["POST"])
 	def updateTag(self):
@@ -159,7 +155,7 @@ class App:
 				print('ERROOOOOR', e)
 				pass
 		
-		render = get_template_attribute('anime_list.html', 'render_animelist')
+		render = get_template_attribute('anime_list.jinja', 'render_animelist')
 
 		return render(animelist=animelist, count=1, page=1)
 
@@ -184,8 +180,7 @@ class App:
 			yield ']'
 		return app.response_class(generator(), mimetype='application/json')
 
-app_instance = Flask(__name__)
-app = App(app=app_instance)
+app = App()
 if __name__ == '__main__':
     app.run(debug=True)
 	# while True:
