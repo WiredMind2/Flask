@@ -1,0 +1,66 @@
+{% import "header.jinja" as header %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="app_icons/icon.ico">
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap-icons.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+	<script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
+	<title>{{ id }}</title>
+
+</head>
+
+<body class="bg-secondary d-flex flex-column vh-100">
+	{{ header.render_header(False, url_for('anime_info', id=id) ) }}
+	<div class="d-flex flex-grow-1">
+		<div class="container text-center">
+			<div class="row rounded-1" id="torrent_list">
+				<div class="col-6">Title</div>
+				<div class="col-1">Seeds</div>
+				<div class="col-1">Leechs</div>
+				<div class="col-4">Link</div>
+			</div>
+			<template id="torrentTemplate">
+				<div class="row rounded-1" id="torrent_list">
+					<div class="col-6 torrent_title">Title</div>
+					<div class="col-1 torrent_seeds">Seeds</div>
+					<div class="col-1 torrent_leechs">Leechs</div>
+					<div class="col-4 torrent_url">Link</div>
+				</div>
+			</template>
+		</div>
+	</div>
+	<script>
+		function updateList() {
+			url = '/torrents_search?search_id={{ search_id }}';
+			fetch(url)
+				.then(response => response.json())
+				.then(data => {
+					let root = document.getElementById('torrent_list');
+					console.log(data.data);
+					data.data.forEach(torrent => {
+						let line = document.getElementById('torrentTemplate').content.cloneNode(true);
+						line.querySelector('.torrent_title').textContent = torrent.name;
+						line.querySelector('.torrent_seeds').textContent = torrent.seeds;
+						line.querySelector('.torrent_leechs').textContent = torrent.leech;
+						line.querySelector('.torrent_url').textContent = torrent.link.url;
+						root.appendChild(line);
+					})
+					if (data.empty === false) {
+						updateList();
+					}
+				})
+		}
+
+		updateList();
+	</script>
+</body>
+
+</html>

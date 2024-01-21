@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>FFmpeg Stream</title>
+    <link href="https://vjs.zencdn.net/8.9.0/video-js.css" rel="stylesheet" />
+    <style>
+        .video-js .vjs-control-bar .vjs-progress-control .vjs-progress-holder {
+            visibility: visible !important;
+        }
+    </style>
+</head>
+
+<body>
+    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" data-setup='{"autoplay": true}'>
+        <source src="{{ url_for('static', filename=stream_url) }}" type="application/x-mpegURL">
+        <source src="{{ url_for('static', filename=stream_url[:-4] + 'ts') }}">
+    </video>
+    <div id="progress-bar"></div>
+
+    <script src="https://vjs.zencdn.net/8.9.0/video.min.js"></script>
+    <script>
+        var player = videojs('my-video', {
+            controls: true,
+            liveui: true
+        });
+
+        player.currentTime(0);
+
+        player.on('loadedmetadata', function () {
+            var duration = player.duration();
+            player.liveTracker.on('progress', function (progress) {
+                var value = progress * duration;
+                progressBar.style.width = value + 'px';
+            });
+        });
+    </script>
+</body>
+
+</html>

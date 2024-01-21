@@ -1,6 +1,9 @@
 import json
-from flask import Flask, abort, get_template_attribute, jsonify, render_template, request, session, stream_with_context
-from database import dbWrapper
+import random
+import string
+import subprocess
+import time
+from flask import Flask, Response, abort, get_template_attribute, jsonify, render_template, request, session, stream_with_context
 import secret
 from utils import Utils
 import constants
@@ -8,7 +11,7 @@ import sys
 import os
 if sys.platform == 'win32':
 	sys.path.append(os.path.join(os.path.expanduser('~'), 'Documents/Python'))
-from AnimeManager import Manager, AnimeList
+from AnimeManager import Manager, AnimeList, TorrentList, search_engines
 
 routes = []
 def route(*args, **kwargs):
@@ -17,12 +20,30 @@ def route(*args, **kwargs):
 		return func
 	return wrapper
 
+def require_login(func):
+	def wrapper(self, *args, **kwargs):
+		if 'x-access-token' in request.headers:
+			token = request.headers['x-access-token']
+		if not token:
+			return jsonify({'message': 'Token is missing!'}), 401
+		try:
+			data = jwt.decode(token, app.config['SECRET_KEY'])
+
+			current_user = data['public_id']
+
+		except:
+
+			return jsonify({'message': 'Token is invalid!'}), 401
+
+		return func(current_user, *args, **kwargs)
+
+	return wrapper
+
 class App(Flask, Utils):
 	def __init__(self, name=None):
 		super().__init__(name or __name__)
 		self.secret_key = secret.SECRET_KEY
 
-		self.userDb = dbWrapper()
 		self.main = Manager(remote=True)
 		
 		self.db = self.main.getDatabase()
@@ -32,12 +53,14 @@ class App(Flask, Utils):
 				func = eval(f'self.{sub}')
 				if callable(func):
 					self.jinja_env.filters[sub] = func
-     
+	 
 		for func, args, kwargs in routes:
 			f = eval(f'self.{func.__name__}')
 			self.route(*args, **kwargs)(f)
 
 		self.context_processor(self.handle_context)
+  
+		self.search_threads = {}
 
 	# @app.context_processor
 	def handle_context(self):
@@ -73,7 +96,11 @@ class App(Flask, Utils):
 		tags = ("SEEN", "WATCHING", "WATCHLIST", "NONE")
 		
 		anime = self.db.get(id, 'anime')
-		return render_template('anime_info.jinja', anime=anime, tags=tags)
+  
+		source = self.main.getFolder(id)
+		episodes = self.main.getEpisodes(source)
+
+		return render_template('anime_info.jinja', anime=anime, tags=tags, episodes=episodes)
 
 	@route('/anime_info/updateTag', methods=["POST"])
 	def updateTag(self):
@@ -91,47 +118,6 @@ class App(Flask, Utils):
 			return '', 200
 		else:
 			return '', 500
-
-	@route('/auth/login', methods=["POST"])
-	def login(self):
-		email = request.form.get('email', None)
-		password = request.form.get('password', None)
-		if not email or not password:
-			abort(400)
-		
-		target = request.form.get('target', None)
-		if target is None: 
-			target = request.referrer
-		
-		id = self.userDb.LoginUser(email, password)
-			
-		if id:
-			user = self.userDb.GetUser(id)
-			session['user_id'] = user['id']
-			return jsonify(user), 200
-		else:
-			if id is None:
-				# Not found
-				return 'BAD - No account found'
-			else:
-				return 'BAD - Wrong password'
-		
-	@route('/auth/register', methods=["POST"])
-	def register(self):
-		email = request.form.get('email', None)
-		password = request.form.get('password', None)
-		username = request.form.get('username', None)
-		if not email or not password or not username:
-			abort(400)
-
-		if len(password) < 8: # TODO - Stronger password and email regex
-			return 'Password is too short!', 400
-		
-		out = self.userDb.RegisterUser(username, email, password)
-		if out is True:
-			return 'OK', 200
-		else:
-			return 'Account already exists!', 400
 
 	@route('/search', methods=["POST"])
 	def search(self):
@@ -159,6 +145,104 @@ class App(Flask, Utils):
 
 		return render(animelist=animelist, count=1, page=1)
 
+	@route('/video/<id>/<episode>')
+	def video(self, id, episode):
+		root = f'static/data/cache/{id}'
+		if not os.path.exists(root):
+			os.makedirs(root)
+
+		source = self.main.getFolder(id) + f'/{episode}.mkv'
+
+		if not os.path.exists(source):
+			abort(404)
+
+		stream_url = f'data/cache/{id}/stream_{episode}.m3u8'
+		stream = os.path.abspath('static/' + stream_url)
+		if not os.path.exists(stream):
+			command = [
+				'ffmpeg', 
+				'-loglevel', 'error',
+				'-i', f'{source}', 
+				'-preset', 'ultrafast', 
+				'-tune', 'zerolatency', 
+				'-vf', f"subtitles='{source}'", 
+				# '-c:s', 'mov_text',
+				'-c:v', 'libx264', 
+				'-c:a', 'aac', 
+				# '-map', '0',
+				# '-flags', '+global_header',
+				'-f', 'hls', 
+				'-hls_time', '5',
+				'-hls_list_size', '0',
+				'-hls_flags', 'single_file',
+				'-movflags', '+faststart', 
+				'-map_metadata', '0',
+				'-y',
+				f'{stream}'
+			]
+			# command = ' '.join(command)
+			print(command)
+			process = subprocess.Popen(command, shell=False) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+
+			while not os.path.exists(stream):
+				time.sleep(0.1)
+
+		# return Response(open(stream, 'rb').read(), mimetype='application/vnd.apple.mpegurl')
+		# return Response(stream_with_context(generate()), mimetype='video/mp4')
+  
+		return render_template('video.jinja', stream_url = stream_url)
+
+	@route('/watch/<id>/<episode>')
+	def watch(self, id, episode):
+		# TODO - An actual player UI
+		return self.video(id, episode)
+
+	@route('/torrents/<id>')
+	def torrents(self, id):
+
+		timestamp = str(int(time.time()))
+		random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+		search_id = f'{timestamp}-{random_chars}'
+  
+		data = self.main.database(id=id, table="anime")
+		titles = data.title_synonyms
+
+		fetcher = search_engines.search(titles)
+
+		# Start search
+		torrents = TorrentList(fetcher)
+		self.search_threads[search_id] = torrents
+
+		return render_template('torrents.jinja', id=id, search_id=search_id)
+
+	@route('/torrents_search')
+	def torrents_search(self):
+		search_id = request.values.get('search_id', None)
+		thread = None
+		if search_id is not None:
+			thread = self.search_threads.get(search_id, None)
+   
+		if thread is None:
+			abort(404)
+
+		out = []
+		loop = True
+		while loop:
+			val = thread.get()
+			if val is not None:
+				loop = False
+	
+			while val is not None:
+				out.append(val)
+				val = thread.get(timeout=None)
+
+		empty = thread.empty()
+
+		for i, torrent in enumerate(out):
+			torrent['link'] = torrent['link'].__dict__
+			
+		return jsonify({'data': out, 'empty': empty}, )
+			
 	def stream_template(template_name, **context):
 		app.update_template_context(context)
 		t = app.jinja_env.get_template(template_name)
@@ -182,7 +266,7 @@ class App(Flask, Utils):
 
 app = App()
 if __name__ == '__main__':
-    app.run(debug=True)
+	app.run(debug=True)
 	# while True:
 	# 	try:
 	# 		app.run(debug=True)

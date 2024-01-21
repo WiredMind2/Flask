@@ -19,9 +19,13 @@ class Utils:
     def GetStatusText(self, anime):
         anime = Anime(anime)
         datefrom, dateto = anime.date_from, anime.date_to
+        if isinstance(datefrom, str):
+            datefrom = anime.date_from = int(datefrom)
+        if isinstance(dateto, str):
+            dateto = anime.dateto = int(dateto)
         if datefrom is not None:
             datefrom = datetime.utcfromtimestamp(datefrom)
         if dateto is not None:
             dateto = datetime.utcfromtimestamp(dateto)
 
-        return '<br>'.join(self, main.getDateText(anime))
+        return '<br>'.join(self.main.getDateText(anime))
