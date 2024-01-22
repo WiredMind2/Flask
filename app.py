@@ -1,9 +1,11 @@
+from functools import wraps
 import json
 import random
 import string
 import subprocess
 import time
-from flask import Flask, Response, abort, get_template_attribute, jsonify, render_template, request, session, stream_with_context
+from flask import Flask, Response, abort, g, get_template_attribute, jsonify, render_template, request, session, stream_with_context
+import jwt
 import secret
 from utils import Utils
 import constants
@@ -14,57 +16,78 @@ if sys.platform == 'win32':
 from AnimeManager import Manager, AnimeList, TorrentList, search_engines
 
 routes = []
+
+
 def route(*args, **kwargs):
 	def wrapper(func):
 		routes.append((func, args, kwargs))
 		return func
 	return wrapper
 
+
 def require_login(func):
+	@wraps(func)
 	def wrapper(self, *args, **kwargs):
-		if 'x-access-token' in request.headers:
-			token = request.headers['x-access-token']
+		connected = True
+		token = request.cookies.get('Token', None)
 		if not token:
-			return jsonify({'message': 'Token is missing!'}), 401
-		try:
-			data = jwt.decode(token, app.config['SECRET_KEY'])
+			connected = False
+		else:
+			try:
+				data = jwt.decode(token, secret.JWT_SECRET_KEY,
+								  algorithms=["HS256"])
+			except jwt.InvalidSignatureError:
+				# Someone tried to hack me
+				connected = False
 
-			current_user = data['public_id']
-
-		except:
-
-			return jsonify({'message': 'Token is invalid!'}), 401
-
-		return func(current_user, *args, **kwargs)
+		# user = data['data']
+		if connected:
+			return func(self, *args, **kwargs)
+		else:
+			return self.disconnected()
 
 	return wrapper
+
 
 class App(Flask, Utils):
 	def __init__(self, name=None):
 		super().__init__(name or __name__)
 		self.secret_key = secret.SECRET_KEY
 
-		self.main = Manager(remote=True)
-		
-		self.db = self.main.getDatabase()
+		if 'global_data' not in globals():
+			self.main = Manager(remote=True)
+
+			self.db = self.main.getDatabase()
+
+			self.search_threads = {}
+			globals()['global_data'] = {
+				'main': self.main,
+				'db': self.db,
+				'search_threads': self.search_threads
+			}
+		else:
+			for k, v in globals()['global_data']:
+				eval(f'self.{k} = {v}')
 
 		for sub in dir(Utils):
 			if sub[:1] != '__':
 				func = eval(f'self.{sub}')
 				if callable(func):
 					self.jinja_env.filters[sub] = func
-	 
+
 		for func, args, kwargs in routes:
 			f = eval(f'self.{func.__name__}')
 			self.route(*args, **kwargs)(f)
 
 		self.context_processor(self.handle_context)
-  
-		self.search_threads = {}
 
 	# @app.context_processor
 	def handle_context(self):
-		data = {k: eval(f'constants.{k}') for k in dir(constants) if k not in constants.__builtins__.keys() and k[:2] != '__'}
+		data = {k: eval(f'constants.{k}') for k in dir(
+			constants) if k not in constants.__builtins__.keys() and k[:2] != '__'}
+		data['user'] = self.get_user()
+		print('user', data['user'])
+		g.user = data['user']
 		return data
 
 	@route('/')
@@ -77,43 +100,96 @@ class App(Flask, Utils):
 		else:
 			page = int(page)-1
 
-		if 'user_id' in session:
-			# Logged in
-			pass
+		# if 'user_id' in session:
+		# 	# Logged in
+		# 	pass
+
+		user = self.get_user()
+		if user:
+			user_id = user['id']
+		else:
+			user_id = False
 
 		if tag is None:
-			animelist, nextList = self.main.getAnimelist("DEFAULT", listrange=(0, 50))
+			# animelist = []
+			# while len(animelist) == 0:
+			animelist, nextList = self.main.getAnimelist(
+				"DEFAULT", listrange=(0, 50), user_id=user_id)
+			animelist = list(animelist)
 		else:
-			animelist, nextList = self.main.getAnimelist(tag, listrange=(0, 50))
-
-		animelist = list(animelist)
+			animelist, nextList = self.main.getAnimelist(
+				tag, listrange=(0, 50), user_id=user_id)
+			animelist = list(animelist)
 
 		count = len(animelist)
 		return render_template('index.jinja', animes=animelist, count=count, page=page)
 
-	@route('/anime_info/<id>') # add a parameter 'id'
+	@route('/anime_info/<id>')
 	def anime_info(self, id):
 		tags = ("SEEN", "WATCHING", "WATCHLIST", "NONE")
-		
+
+		reload = request.values.get('reload', False)
+		if reload:
+			# Require login
+			user = self.get_user()
+			if user:
+				self.main.api.anime(id)
+
 		anime = self.db.get(id, 'anime')
-  
+
 		source = self.main.getFolder(id)
 		episodes = self.main.getEpisodes(source)
 
-		return render_template('anime_info.jinja', anime=anime, tags=tags, episodes=episodes)
+		progress = self.get_torrents_progress(id)
+		torrents = [{'hash': k} | v for k, v in progress.items()]
+
+		return render_template('anime_info.jinja', anime=anime, tags=tags, episodes=episodes, torrents=torrents)
+
+	@route('/disconnected')
+	def disconnected(self):
+		user = self.get_user()
+		if user is not None:
+			# Don't tell that they're not connected if they actually are
+			return self.index()
+
+		return render_template('disconnected.jinja')
+
+	@route('/torrent_progress/<id>')
+	@require_login
+	def torrent_progress(self, id):
+		progress = self.get_torrents_progress(id)
+		return jsonify({'data': progress})
+
+	def get_torrents_progress(self, id):
+		torrents = self.main.getTorrentsProgress(id)
+		if len(torrents) == 0:
+			return {}
+
+		torrents = list(filter(lambda t: t.downloaded and t.size, torrents))
+
+		progress = {}
+		for t in torrents:
+			progress[t.hash] = {'name': t.name, 'progress': (t.downloaded*100/t.size/len(torrents))}
+		return progress
 
 	@route('/anime_info/updateTag', methods=["POST"])
+	@require_login
 	def updateTag(self):
 		id = request.values.get('id', None)
 		tag = request.form.get('tag', None)
 		if not id or not tag:
 			abort(400)
-		
+
+		user = self.get_user()
+
 		id = int(id)
-		
-		# TODO
-		ok = True
-		
+		try:
+			self.main.set_tag(id, tag, user.id)
+		except:
+			ok = False
+		else:
+			ok = True
+
 		if ok:
 			return '', 200
 		else:
@@ -123,31 +199,41 @@ class App(Flask, Utils):
 	def search(self):
 		terms = request.values.get('terms', None)
 		force_api = request.values.get('force_api', None)
-		
+
 		if force_api is None:
 			force_api = False
-		
+
 		if not terms or len(terms) < 2:
-			animelist, nextList = self.main.getAnimelist("DEFAULT", listrange=(0, 50))
+			animelist, nextList = self.main.getAnimelist(
+				"DEFAULT", listrange=(0, 50))
 		else:
+			animelist = []
 			try:
 				if not force_api:
 					animelist = self.main.searchDb(terms)
-
-				if force_api or animelist is False:
+					animelist = list(animelist)
+	 
+				if force_api or len(animelist) == 0:
 					self.main.stopSearch = False
-					animelist = self.main.api.searchAnime(terms, limit=self.main.animePerPage)
+					animelist = self.main.api.searchAnime(
+						terms, limit=self.main.animePerPage)
 			except Exception as e:
 				print('ERROOOOOR', e)
 				pass
-		
+
+		if animelist is not False:
+			animelist = list(animelist)
+		else:
+			animelist = []
 		render = get_template_attribute('anime_list.jinja', 'render_animelist')
 
 		return render(animelist=animelist, count=1, page=1)
 
-	@route('/video/<id>/<episode>')
-	def video(self, id, episode):
-		root = f'static/data/cache/{id}'
+	@route('/watch/<id>/<episode>')
+	@require_login
+	def watch(self, id, episode):
+		web_root = '/var/www/anime.tetrazero.com/Flask/'
+		root = web_root + f'static/data/cache/{id}'
 		if not os.path.exists(root):
 			os.makedirs(root)
 
@@ -156,93 +242,131 @@ class App(Flask, Utils):
 		if not os.path.exists(source):
 			abort(404)
 
-		stream_url = f'data/cache/{id}/stream_{episode}.m3u8'
-		stream = os.path.abspath('static/' + stream_url)
+		stream_file = f'stream_{episode}.m3u8'
+		stream_url = f'data/cache/{id}/{stream_file}'
+		stream = f'{root}/{stream_file}'
 		if not os.path.exists(stream):
 			command = [
-				'ffmpeg', 
+				'ffmpeg',
 				'-loglevel', 'error',
-				'-i', f'{source}', 
-				'-preset', 'ultrafast', 
-				'-tune', 'zerolatency', 
-				'-vf', f"subtitles='{source}'", 
+				'-i', f'{source}',
+				'-preset', 'ultrafast',
+				'-tune', 'zerolatency',
+				'-vf', f"subtitles='{source}'",
 				# '-c:s', 'mov_text',
-				'-c:v', 'libx264', 
-				'-c:a', 'aac', 
+				'-c:v', 'libx264',
+				'-c:a', 'aac',
 				# '-map', '0',
 				# '-flags', '+global_header',
-				'-f', 'hls', 
+				'-f', 'hls',
 				'-hls_time', '5',
 				'-hls_list_size', '0',
 				'-hls_flags', 'single_file',
-				'-movflags', '+faststart', 
+				'-movflags', '+faststart',
 				'-map_metadata', '0',
 				'-y',
 				f'{stream}'
 			]
 			# command = ' '.join(command)
-			print(command)
-			process = subprocess.Popen(command, shell=False) #, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+			# print(command)
+			# , stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+			process = subprocess.Popen(command, shell=False)
 
 			while not os.path.exists(stream):
 				time.sleep(0.1)
 
 		# return Response(open(stream, 'rb').read(), mimetype='application/vnd.apple.mpegurl')
 		# return Response(stream_with_context(generate()), mimetype='video/mp4')
-  
-		return render_template('video.jinja', stream_url = stream_url)
 
-	@route('/watch/<id>/<episode>')
-	def watch(self, id, episode):
-		# TODO - An actual player UI
-		return self.video(id, episode)
+		return render_template('video.jinja', stream_url=stream_url, id=id, episode=episode)
 
 	@route('/torrents/<id>')
+	@require_login
 	def torrents(self, id):
 
 		timestamp = str(int(time.time()))
-		random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+		random_chars = ''.join(random.choices(
+			string.ascii_uppercase + string.digits, k=6))
 		search_id = f'{timestamp}-{random_chars}'
-  
+
 		data = self.main.database(id=id, table="anime")
 		titles = data.title_synonyms
 
-		fetcher = search_engines.search(titles)
+		testing = False
+		if testing:
+			def generator():
+				for i in range(50):
+					yield {'name': ''.join(random.choices(string.ascii_letters, k=5)), 'seeds': i, 'leech': random.randint(1, 100), 'link': {'url': f'url{i}'}, 'hash': i}
+					time.sleep(1)
+
+			fetcher = generator()
+		else:
+			fetcher = search_engines.search(titles)
 
 		# Start search
 		torrents = TorrentList(fetcher)
+
 		self.search_threads[search_id] = torrents
 
 		return render_template('torrents.jinja', id=id, search_id=search_id)
 
 	@route('/torrents_search')
+	@require_login
 	def torrents_search(self):
 		search_id = request.values.get('search_id', None)
 		thread = None
 		if search_id is not None:
 			thread = self.search_threads.get(search_id, None)
-   
+
 		if thread is None:
-			abort(404)
+			return jsonify({'error': f'search_id {search_id} is unknown'})
 
 		out = []
-		loop = True
-		while loop:
-			val = thread.get()
-			if val is not None:
-				loop = False
-	
-			while val is not None:
-				out.append(val)
-				val = thread.get(timeout=None)
+		val = thread.get(timeout=1)
+
+		while val is not None:
+			out.append(val)
+			val = thread.get(timeout=None)
 
 		empty = thread.empty()
 
 		for i, torrent in enumerate(out):
-			torrent['link'] = torrent['link'].__dict__
-			
+			if not isinstance(torrent['link'], dict):
+				torrent['link'] = torrent['link'].__dict__
+
 		return jsonify({'data': out, 'empty': empty}, )
-			
+
+	@route('/download/<id>')
+	@require_login
+	def download(self, id):
+		magnet = request.values.get('magnet', None)
+
+		if not magnet:
+			abort(400)
+
+		try:
+			out = self.main.downloadFile(id, url=magnet, download=False)
+		except Exception as e:
+			val = False
+		else:
+			val = out.get()
+
+		return jsonify({'success': val})
+
+	def get_user(self):
+		token = request.cookies.get('Token', None)
+		if not token:
+			return None
+
+		try:
+			data = jwt.decode(token, secret.JWT_SECRET_KEY,
+							  algorithms=["HS256"])
+		except jwt.InvalidSignatureError:
+			# Someone tried to hack me
+			return None
+
+		return data['data']
+
 	def stream_template(template_name, **context):
 		app.update_template_context(context)
 		t = app.jinja_env.get_template(template_name)
@@ -264,7 +388,9 @@ class App(Flask, Utils):
 			yield ']'
 		return app.response_class(generator(), mimetype='application/json')
 
+
 app = App()
+
 if __name__ == '__main__':
 	app.run(debug=True)
 	# while True:

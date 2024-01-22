@@ -1,0 +1,18 @@
+{% import "header.jinja" as header %}
+{% import "head.jinja" as head %}
+<!DOCTYPE html>
+<html lang="en">
+
+{{ head.render_head( 'You\'re not logged in!' ) }}
+
+<body class="bg-secondary d-flex flex-column vh-100">
+	{{ header.render_header(False, url_for('anime_info', id=id) ) }}
+	<div class="container w-100 text-center">
+		<h1>You're not logged in!</h1>
+		<p>You need to login to access this page</p>
+		<a href="{{ url_for('index') }}">Go back to main menu</a>
+	</div>
+	{{ head.render_footer() }}
+</body>
+
+</html>

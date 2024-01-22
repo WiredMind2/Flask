@@ -1,0 +1,29 @@
+{% macro render_head(title, close=True) %}
+
+<head>
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="{{ url_for('static', filename='app_icons/icon.ico') }}">
+
+	<!-- Jquery -->
+	<script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
+
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap-icons.css') }}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+
+	<title>{{ title }}</title>
+	<meta name="description" content="An anime streaming platform, by Tetrazero.com">
+
+	{% if close == True %}
+</head>
+{% endif %}
+
+{% endmacro %}
+{% macro render_footer() %}
+
+<script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+{% endmacro %}

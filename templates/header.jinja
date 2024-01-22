@@ -1,110 +1,93 @@
 {% import "login_modal/login.jinja" as login with context %}
-{% macro render_header(use_searchbar=None, url_back=None, user=None) %}
-  <header class="py-3 pb-3 border-bottom border-dark bg-dark">
-    <div class="container-fluid d-grid gap-3 align-items-center"
-         style="grid-template-columns: 1fr 2fr">
-      <div class="d-flex align-items-center">
-        {% if url_back != None %}
-          <a href="{{ url_back }}" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-caret-left-fill"></i>
-          </a>
-        {% endif %}
-        <div class="dropdown">
-          <a href="#"
-             class="d-flex align-items-center col-lg-4 mb-2 mb-lg-0 link-light text-decoration-none dropdown-toggle"
-             id="dropdownNavLink"
-             data-bs-toggle="dropdown"
-             aria-expanded="false">
-            <img class="bi me-2"
-                 width="40"
-                 height="40"
-                 src="{{ url_for('static', filename='app_icons/64x64/icon_nobg.png') }}"
-                 alt="Huh" />
-          </a>
-          <ul class="dropdown-menu dropdown-menu-dark text-small shadow"
-              aria-labelledby="dropdownNavLink">
-            <li>
-              <a class="dropdown-item active" href="{{ url_for('index') }}" aria-current="page">Home</a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 href="https://www.myanimelist.net">MyAnimeList <i class="bi bi-box-arrow-up-right"></i></a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 href="https://www.kitsu.io">Kitsu.io <i class="bi bi-box-arrow-up-right"></i></a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 href="https://www.animenewsnetwork.com/">Anime News <i class="bi bi-box-arrow-up-right"></i></a>
-            </li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 href="https://www.nyaa.si">Nyaa.si <i class="bi bi-box-arrow-up-right"></i></a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 href="https://www.tokyotosho.info">Tokyo Toshokan <i class="bi bi-box-arrow-up-right"></i></a>
-            </li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-          </ul>
-        </div>
-        <div class="mx-4">{{ login.loginButton(user) }}</div>
-      </div>
-      <div class="d-flex align-items-center">
-        <div class="w-100 me-3">
-          {% if use_searchbar %}
-            <form onSubmit="return false;">
-              <input type="text"
-                     class="form-control bg-transparent text-light"
-                     id="searchBar"
-                     onkeyup="searchAnime()"
-                     placeholder="Search..."
-                     aria-label="Search">
-            </form>
-          {% endif %}
-        </div>
-        <div class="flex-shrink-0 dropdown">
-          <a href="#"
-             class="d-block link-light text-decoration-none dropdown-toggle"
-             id="dropdownUser2"
-             data-bs-toggle="dropdown"
-             aria-expanded="false">
-            <i class="bi bi-sort-down fs-2"></i>
-          </a>
-          <ul class="dropdown-menu dropdown-menu-dark text-small shadow"
-              aria-labelledby="dropdownUser2">
-            {% if use_searchbar %}
-              <li>
-                <span class="dropdown-header align-middle fs-5">Sort by:</span>
-              </li>
-              {% for tag, tagData in filterOptions.items() %}
-                <li>
-                  <a class="dropdown-item text-{{ tagData['color'] }}"
-                     href="{{ url_for('index', tag=tagData['filter']) }}">{{ tag }}</a>
-                </li>
-              {% endfor %}
-            {% endif %}
-          </ul>
-        </div>
-      </div>
-    </div>
-    <script>
+{% macro render_header(use_searchbar=None, url_back=None) %}
+<header class="py-3 pb-3 border-bottom border-dark bg-dark">
+	<div class="container-fluid d-grid gap-3 align-items-center" style="grid-template-columns: 1fr 2fr">
+		<div class="d-flex align-items-center">
+
+			{% if url_back != None %}
+			<a href="{{ url_back }}" class="btn btn-outline-secondary me-2">
+				<i class="bi bi-caret-left-fill"></i>
+			</a>
+			{% endif %}
+
+			<div class="dropdown">
+				<a href="#"
+					class="d-flex align-items-center col-lg-4 mb-2 mb-lg-0 link-light text-decoration-none dropdown-toggle"
+					id="dropdownNavLink" data-bs-toggle="dropdown" aria-expanded="false">
+					<img class="bi me-2" width="40" height="40"
+						src="{{ url_for('static', filename='app_icons/64x64/icon_nobg.png') }}" alt="Huh" />
+				</a>
+
+				<ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownNavLink">
+					<li>
+						<a class="dropdown-item active" href="{{ url_for('index') }}" aria-current="page">Home</a>
+					</li>
+					<li>
+						<a class="dropdown-item" target="_blank" rel="noopener noreferrer"
+							href="https://www.myanimelist.net">MyAnimeList <i class="bi bi-box-arrow-up-right"></i></a>
+					</li>
+					<li>
+						<a class="dropdown-item" target="_blank" rel="noopener noreferrer"
+							href="https://www.kitsu.io">Kitsu.io <i class="bi bi-box-arrow-up-right"></i></a>
+					</li>
+					<li>
+						<a class="dropdown-item" target="_blank" rel="noopener noreferrer"
+							href="https://www.animenewsnetwork.com/">Anime News <i
+								class="bi bi-box-arrow-up-right"></i></a>
+					</li>
+					<li>
+						<hr class="dropdown-divider">
+					</li>
+					<li>
+						<a class="dropdown-item" target="_blank" rel="noopener noreferrer"
+							href="https://www.nyaa.si">Nyaa.si <i class="bi bi-box-arrow-up-right"></i></a>
+					</li>
+					<li>
+						<a class="dropdown-item" target="_blank" rel="noopener noreferrer"
+							href="https://www.tokyotosho.info">Tokyo Toshokan <i
+								class="bi bi-box-arrow-up-right"></i></a>
+					</li>
+					<li>
+						<hr class="dropdown-divider">
+					</li>
+				</ul>
+			</div>
+
+			<div class="mx-4">
+				{{ login.loginButton() }}
+			</div>
+		</div>
+
+		<div class="d-flex align-items-center">
+
+			{% if use_searchbar %}
+			<div class="w-100 me-3">
+				<form class="my-0" onSubmit="return false;">
+					<input type="text" class="form-control bg-transparent text-light" id="searchBar"
+						onkeyup="searchAnime()" placeholder="Search..." aria-label="Search">
+				</form>
+			</div>
+			<div class="dropdown">
+				<a class="dropdown-toggle link-light text-decoration-none" data-bs-toggle="dropdown"
+					aria-expanded="false" role="button">
+					<i class="bi bi-sort-down fs-2"></i>
+				</a>
+				<ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+					<li>
+						<span class="dropdown-header align-middle fs-5">Sort by:</span>
+					</li>
+					{% for tag, tagData in filterOptions.items() %}
+					<li>
+						<a class="dropdown-item text-{{ tagData['color'] }}"
+							href="{{ url_for('index', tag=tagData['filter']) }}">{{ tag }}</a>
+					</li>
+					{% endfor %}
+				</ul>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+	<script>
 		function searchAnime() {
 			var input = document.getElementById("searchBar").value;
 			$.ajax({
@@ -113,7 +96,7 @@
 				data: {
 					'terms': input
 				},
-				success: function(e) {
+				success: function (e) {
 					var parent = document.getElementById("animelist");
 					parent.innerHTML = e;
 
@@ -134,14 +117,14 @@
 					'terms': input,
 					'force_API': 'true'
 				},
-				success: function(e) {
+				success: function (e) {
 					var parent = document.getElementById("animelist");
 					parent.innerHTML = e;
 				}
 			});
 		}
-	
-    </script>
-    {{ login.render_login_modal(target=request.url ) }}
-  </header>
+
+	</script>
+	{{ login.render_login_modal(target=request.url ) }}
+</header>
 {% endmacro %}

@@ -1,40 +1,53 @@
-<!DOCTYPE html>
-<html>
+{% import "head.jinja" as head %}
+{% import "header.jinja" as header %}
 
-<head>
-    <title>FFmpeg Stream</title>
-    <link href="https://vjs.zencdn.net/8.9.0/video-js.css" rel="stylesheet" />
-    <style>
-        .video-js .vjs-control-bar .vjs-progress-control .vjs-progress-holder {
-            visibility: visible !important;
-        }
-    </style>
+<!DOCTYPE html>
+<html lang="en">
+
+{{ head.render_head('FFmpeg Stream', close=False) }}
+
+<link href="https://vjs.zencdn.net/8.9.0/video-js.css" rel="stylesheet" />
+<style>
+	.video-js .vjs-control-bar .vjs-progress-control .vjs-progress-holder {
+		visibility: visible !important;
+	}
+</style>
 </head>
 
-<body>
-    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360" data-setup='{"autoplay": true}'>
-        <source src="{{ url_for('static', filename=stream_url) }}" type="application/x-mpegURL">
-        <source src="{{ url_for('static', filename=stream_url[:-4] + 'ts') }}">
-    </video>
-    <div id="progress-bar"></div>
+<body class="bg-secondary d-flex flex-column vh-100">
+	{{ header.render_header(False, url_for('anime_info', id=id) ) }}
+	<div class="col-10 offset-1 mt-4">
+		<div class="ratio ratio-16x9 w-100">
+			<div>
+				<video id="my-video" class="w-100 h-100 video-js vjs-default-skin" controls preload="auto"
+					data-setup='{"autoplay": true}'>
+					<source src="{{ url_for('static', filename=stream_url) }}" type="application/x-mpegURL">
+					<source src="{{ url_for('static', filename=stream_url[:-4] + 'ts') }}">
+				</video>
+			</div>
+		</div>
+	</div>
+	<div class="col-10 offset-1 text-center mt-1">
+		<p class="fw-semibold fs-3">{{ episode }}</p>
+	</div>
+	<script src="https://vjs.zencdn.net/8.9.0/video.min.js"></script>
+	<script>
+		var player = videojs('my-video', {
+			controls: true,
+			liveui: true
+		});
 
-    <script src="https://vjs.zencdn.net/8.9.0/video.min.js"></script>
-    <script>
-        var player = videojs('my-video', {
-            controls: true,
-            liveui: true
-        });
+		player.currentTime(0);
 
-        player.currentTime(0);
-
-        player.on('loadedmetadata', function () {
-            var duration = player.duration();
-            player.liveTracker.on('progress', function (progress) {
-                var value = progress * duration;
-                progressBar.style.width = value + 'px';
-            });
-        });
-    </script>
+		player.on('loadedmetadata', function () {
+			var duration = player.duration();
+			player.liveTracker.on('progress', function (progress) {
+				var value = progress * duration;
+				progressBar.style.width = value + 'px';
+			});
+		});
+	</script>
+	{{ head.render_footer() }}
 </body>
 
 </html>

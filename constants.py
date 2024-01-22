@@ -12,3 +12,4 @@ filterOptions = {
     'No tags': {'color': 'light', 'filter': 'NONE'},
     'No filter': {'color': 'secondary', 'filter': 'DEFAULT'}
 }
+tags = ['Seen', 'Watching', 'Watchlist', 'Finished']

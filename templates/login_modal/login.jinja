@@ -1,94 +1,95 @@
 {% macro render_login_modal(target=None) %}
-    <script>
-    function showToast(id, text, error = true) {
-      toast = document.getElementById(id);
+<script>
+	function showToast(id, text, error = true) {
+		toast = document.getElementById(id);
 
-      if (error === true) {
-        toast.classList.add('bg-danger');
-        toast.classList.remove('bg-success');
-      } else {
-        toast.classList.add('bg-success');
-        toast.classList.remove('bg-danger');
-      }
+		if (error === true) {
+			toast.classList.add('bg-danger');
+			toast.classList.remove('bg-success');
+		} else {
+			toast.classList.add('bg-success');
+			toast.classList.remove('bg-danger');
+		}
 
-      toast.getElementsByClassName('toast-body')[0].textContent = text;
-      bootstrap.Toast.getOrCreateInstance(toast).show();
-    }
+		toast.getElementsByClassName('toast-body')[0].textContent = text;
+		bootstrap.Toast.getOrCreateInstance(toast).show();
+	}
 
-    function disconnect() {
-      document.cookie = 'Token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      if (window.history.replaceState) {
-        window.history.replaceState(null, null, window.location.href);
-      }
-      window.location = window.location.href.split("#")[0];
-    }
-    </script>
-    <style>
-    .form-container {
-        /* width: 400px; */
-        background: linear-gradient(#212121, #212121) padding-box,
-            linear-gradient(145deg, #40c9ff, #e81cff 40%, #40c9ff) border-box;
-        border: 2px solid transparent;
-        padding: 32px 24px;
-        font-size: 14px;
-        font-family: inherit;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        box-sizing: border-box;
-        border-radius: 16px;
-    }
+	function disconnect() {
+		document.cookie = 'Token=; Path=/; Domain=.tetrazero.com; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		if (window.history.replaceState) {
+			window.history.replaceState(null, null, window.location.href);
+		}
+		window.location = window.location.href.split("#")[0];
+	}
+</script>
 
-    .form-container button:active {
-        scale: 0.95;
-    }
+<style>
+	.form-container {
+		/* width: 400px; */
+		background: linear-gradient(#212121, #212121) padding-box,
+			linear-gradient(145deg, #40c9ff, #e81cff 40%, #40c9ff) border-box;
+		border: 2px solid transparent;
+		padding: 32px 24px;
+		font-size: 14px;
+		font-family: inherit;
+		color: white;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		box-sizing: border-box;
+		border-radius: 16px;
+	}
 
-    .form-container .form {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
+	.form-container button:active {
+		scale: 0.95;
+	}
 
-    .form-container .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
+	.form-container .form {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
 
-    .form-container .title {
-        color: #afafaf;
-        font-weight: 600;
-    }
+	.form-container .form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
 
-    .form-container .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        color: #717171;
-        font-weight: 600;
-        font-size: 12px;
-    }
+	.form-container .title {
+		color: #afafaf;
+		font-weight: 600;
+	}
 
-    .form-container .form-group input {
-        width: 100%;
-        padding: 12px 16px;
-        border-radius: 8px;
-        color: #fff;
-        font-family: inherit;
-        background-color: transparent;
-        border: 1px solid #414141;
-    }
+	.form-container .form-group label {
+		display: block;
+		margin-bottom: 5px;
+		color: #717171;
+		font-weight: 600;
+		font-size: 12px;
+	}
 
-    .form-container .form-group input::placeholder {
-        opacity: 0.5;
-    }
+	.form-container .form-group input {
+		width: 100%;
+		padding: 12px 16px;
+		border-radius: 8px;
+		color: #fff;
+		font-family: inherit;
+		background-color: transparent;
+		border: 1px solid #414141;
+	}
 
-    .form-container .form-group input:focus {
-        outline: none;
-        border-color: #e81cff;
-    }
+	.form-container .form-group input::placeholder {
+		opacity: 0.5;
+	}
 
-    /* .form-container .form-submit-btn {
+	.form-container .form-group input:focus {
+		outline: none;
+		border-color: #e81cff;
+	}
+
+	/* .form-container .form-submit-btn {
       display: flex;
       align-items: flex-start;
       justify-content: center;
@@ -112,126 +113,117 @@
       border-color: #fff;
     } */
 
-    .form-container .form-submit-btn {
-        height: 55px;
-        background: #F2F2F2;
-        border-radius: 11px;
-        border: 0;
-        outline: none;
-        color: #d3d3d3;
-        font-size: 13px;
-        font-weight: 700;
-        background: linear-gradient(180deg, #363636 0%, #222222 50%, #1B1B1B 100%);
-        box-shadow: 0px 0px 0px 0px #FFFFFF, 0px 0px 0px 0px #000000;
-        transition: all 0.3s cubic-bezier(0.15, 0.83, 0.66, 1);
-    }
+	.form-container .form-submit-btn {
+		height: 55px;
+		background: #F2F2F2;
+		border-radius: 11px;
+		border: 0;
+		outline: none;
+		color: #d3d3d3;
+		font-size: 13px;
+		font-weight: 700;
+		background: linear-gradient(180deg, #363636 0%, #222222 50%, #1B1B1B 100%);
+		box-shadow: 0px 0px 0px 0px #FFFFFF, 0px 0px 0px 0px #000000;
+		transition: all 0.3s cubic-bezier(0.15, 0.83, 0.66, 1);
+	}
 
-    .form-container .form-submit-btn:hover {
-        box-shadow: 0px 0px 0px 2px #40c9ff, 0px 0px 0px 4px #F2F2F23a;
-    }
-    
-    </style>
-    <!-- Login modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content border-0 bg-secondary">
-                <div class="modal-body form-container">
-                    <h2 class="text-center title">Login</h2>
-                    <form class="form" action="https://tetrazero.com/login/modal.php" method="post">
-                        <input type="hidden" name="action" value="login">
-                        <div class="form-group">
-                            <label for="login_email" class="form-label">Email</label>
-                            <input type="email" id="login_email" name="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="login_password" class="form-label">Password</label>
-                            <input type="password" id="login_password" name="password" required>
-                            <a class="form-label text-end"
-                               href="#"
-                               data-bs-toggle="tooltip"
-                               data-bs-title="Too bad!"
-                               onclick="showToast('loginToast', 'Too bad! You can\'t get it back.')">Forgot password?</a>
-                        </div>
-                        <button class="form-submit-btn" type="submit" onclick="login()">Login</button>
-                        {% if target != None %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
-                    </form>
-                    <div class="text-center">
-                        <label>
-                            No account? <a data-bs-target="#registerModal" data-bs-toggle="modal">Sign up</a>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{ addToast("loginToast") }}
-    </div>
-    <!-- Register modal -->
-    <div class="modal fade" id="registerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content border-0 bg-secondary">
-                <div class="modal-body form-container">
-                    <h2 class="text-center title">Register</h2>
-                    <form class="form" action="https://tetrazero.com/login/modal.php" method="post">
-                        <input type="hidden" name="action" value="register">
-                        <div class="form-group">
-                            <label for="register_username" class="form-label">Username</label>
-                            <input type="text" id="register_username" name="username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="register_email" class="form-label">Email</label>
-                            <input type="email" id="register_email" name="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="register_password" class="form-label">Password</label>
-                            <input type="password" id="register_password" name="password" required>
-                        </div>
-                        <button class="form-submit-btn" type="submit" onclick="register()">Register</button>
-                        {% if target != None %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
-                    </form>
-                    <div class="text-center">
-                        <label>
-                            Already have an account? <a data-bs-target="#loginModal" data-bs-toggle="modal">Sign in</a>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{ addToast("registerToast") }}
-    </div>
+	.form-container .form-submit-btn:hover {
+		box-shadow: 0px 0px 0px 2px #40c9ff, 0px 0px 0px 4px #F2F2F23a;
+	}
+</style>
+
+<!-- Login modal -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content border-0 bg-secondary">
+			<div class="modal-body form-container">
+				<h2 class="text-center title">Login</h2>
+				<form class="form" action="https://tetrazero.com/login/modal.php" method="post">
+					<input type="hidden" name="action" value="login">
+					<div class="form-group">
+						<label for="login_email" class="form-label">Email</label>
+						<input type="email" id="login_email" name="email" required>
+					</div>
+					<div class="form-group">
+						<label for="login_password" class="form-label">Password</label>
+						<input type="password" id="login_password" name="password" required>
+						<a class="form-label text-end" href="#" data-bs-toggle="tooltip" data-bs-title="Too bad!"
+							onclick="showToast('loginToast', 'Too bad! You can\'t get it back.')">Forgot password?</a>
+					</div>
+					<button class="form-submit-btn" type="submit">Login</button>
+					{% if target != None %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
+				</form>
+				<div class="text-center">
+					<label>
+						No account? <a data-bs-target="#registerModal" data-bs-toggle="modal">Sign up</a>
+					</label>
+				</div>
+			</div>
+		</div>
+	</div>
+	{{ addToast("loginToast") }}
+</div>
+<!-- Register modal -->
+<div class="modal fade" id="registerModal" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content border-0 bg-secondary">
+			<div class="modal-body form-container">
+				<h2 class="text-center title">Register</h2>
+				<form class="form" action="https://tetrazero.com/login/modal.php" method="post">
+					<input type="hidden" name="action" value="register">
+					<div class="form-group">
+						<label for="register_username" class="form-label">Username</label>
+						<input type="text" id="register_username" name="username" required>
+					</div>
+					<div class="form-group">
+						<label for="register_email" class="form-label">Email</label>
+						<input type="email" id="register_email" name="email" required>
+					</div>
+					<div class="form-group">
+						<label for="register_password" class="form-label">Password</label>
+						<input type="password" id="register_password" name="password" required>
+					</div>
+					<button class="form-submit-btn" type="submit" onclick="register()">Register</button>
+					{% if target != None %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
+				</form>
+				<div class="text-center">
+					<label>
+						Already have an account? <a data-bs-target="#loginModal" data-bs-toggle="modal">Sign in</a>
+					</label>
+				</div>
+			</div>
+		</div>
+	</div>
+	{{ addToast("registerToast") }}
+</div>
 {% endmacro %}
+
 {% macro addToast(id) %}
-    <!-- Toast -->
-    <div id="{{ id }}"
-         class="toast align-items-center position-absolute bottom-0 end-0 text-light bg-success"
-         role="alert">
-        <div class="d-flex">
-            <div class="toast-body">Text</div>
-            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    </div>
+<!-- Toast -->
+<div id="{{ id }}" class="toast align-items-center position-absolute bottom-0 end-0 text-light bg-success" role="alert">
+	<div class="d-flex">
+		<div class="toast-body">Text</div>
+		<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+	</div>
+</div>
 {% endmacro %}
-{% macro loginButton(user=None) %}
-    {% if user == None %}
-        <!-- Login button -->
-        <button type="button"
-                class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#loginModal">Login</button>
-    {% else %}
-        <!-- Connected -->
-        <div class="dropdown">
-            <button type="button"
-                    class="btn btn-primary dropdown-toggle"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                    data-bs-auto-close="outside">Connected as {{ user.username }}</button>
-            <ul class="dropdown-menu bg-dark">
-                <li>
-                    <a class="dropdown-item link-danger bg-dark text-center"
-                       href="#"
-                       onclick="disconnect()">Disconnect</a>
-                </li>
-            </ul>
-        </div>
-    {% endif %}
+
+{% macro loginButton() %}
+{% if g.user == None %}
+<!-- Login button -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">
+	Login
+</button>
+{% else %}
+<!-- Connected -->
+<div class="dropdown">
+	<button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
+		data-bs-auto-close="outside">Connected as {{ g.user.username }}</button>
+	<ul class="dropdown-menu bg-dark">
+		<li>
+			<a class="dropdown-item link-danger bg-dark text-center" href="#" onclick="disconnect()">Disconnect</a>
+		</li>
+	</ul>
+</div>
+{% endif %}
 {% endmacro %}

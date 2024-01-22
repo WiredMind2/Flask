@@ -1,6 +1,6 @@
 {% import "pagination.jinja" as pagination %}
 {% macro render_animelist(animelist, count, page=0) %}
-  <div class="album pb-5 bg-dark bg-gradient">
+  <div class="album pb-5 bg-dark bg-gradient h-100">
     <div class="container">
       {{ pagination.render_pagination(page, count) }}
       {% if count > 0 %}
@@ -16,7 +16,7 @@
                          alt="Couldn't load the image cover!" />
                   </a>
                   <div class="card-body">
-                    <h5 class="card-title text-center">{{ v.title }}</h5>
+                    <h5 class="card-title text-center text-{{ v.tag|GetTagColor }}">{{ v.title }}</h5>
                     <p class="card-text">{{ v.synopsis|cropText(150) }}</p>
                   </div>
                 </div>
@@ -27,7 +27,7 @@
       {% elif animelist == "loading" %}
         <p data-loading='true'>Loading...</p>
       {% else %}
-        <p>No data, try to login to your account!</p>
+        <p>No data, something probably went wrong...</p>
         {# <p>Also, you shouldn't be able to see this message, something is probably broken (again).</p> #}
       {% endif %}
       {{ pagination.render_pagination(page, count) }}

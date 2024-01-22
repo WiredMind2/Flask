@@ -6,20 +6,36 @@ $watching_color:#E79622;
 $watchlist_color:#56D8EF;
 $none_color:#F0F0FF;
   
-.btn-outline-primary-seen {
+.btn-outline-seen {
     @include button-outline-variant($seen_color, #222222, lighten($seen_color,5%), $seen_color);
 }
     
-.btn-outline-primary-watching {
+.btn-outline-watching {
     @include button-outline-variant($watching_color, #222222, lighten($watching_color,5%), $watching_color);
 }
     
-.btn-outline-primary-watchlist {
+.btn-outline-watchlist {
     @include button-outline-variant($watchlist_color, #222222, lighten($watchlist_color,5%), $watchlist_color);
 }
 
-.btn-outline-primary-none {
+.btn-outline-none {
     @include button-outline-variant($none_color, #222222, lighten($none_color,5%), $none_color);
+}
+
+.btn-seen {
+    @include button-variant($seen_color, #222222, lighten($seen_color,5%), $seen_color);
+}
+    
+.btn-watching {
+    @include button-variant($watching_color, #222222, lighten($watching_color,5%), $watching_color);
+}
+    
+.btn-watchlist {
+    @include button-variant($watchlist_color, #222222, lighten($watchlist_color,5%), $watchlist_color);
+}
+
+.btn-none {
+    @include button-variant($none_color, #222222, lighten($none_color,5%), $none_color);
 }
 
 $theme-colors: (
