@@ -39,7 +39,7 @@
 				<div class="btn-group d-none d-sm-block" role="group" aria-label="Tag buttons H">
 					{% for tag in tags %}
 					<input type="radio" class="btn-check" name="radio_btn_tag_H" id="btnradioH{{ tag }}"
-						autocomplete="off" onclick="updateTag({{ anime.id }}, '{{ tag }}')" {% if anime.tag==tag
+						autocomplete="off" onclick="updateTag({{ anime.id }}, '{{ tag }}')" {% if anime.tag|lower==tag|lower
 						%}checked{% endif %} value={{ tag }}>
 					<label class="btn btn-outline-{{ tag|lower }}" for="btnradioH{{ tag }}">{{ tag }}</label>
 					{% endfor %}
@@ -48,7 +48,7 @@
 				<div class="btn-group-vertical d-block d-sm-none" role="group" aria-label="Tag buttons V">
 					{% for tag in tags %}
 					<input type="radio" class="btn-check" name="radio_btn_tag_V" id="btnradioV{{ tag }}"
-						autocomplete="off" onclick="updateTag({{ anime.id }}, '{{ tag }}')" {% if anime.tag==tag
+						autocomplete="off" onclick="updateTag({{ anime.id }}, '{{ tag }}')" {% if anime.tag|lower==tag|lower
 						%}checked{% endif %} value={{ tag }}>
 					<label class="btn btn-outline-{{ tag|lower }} mt-1" for="btnradioV{{ tag }}">{{ tag }}</label>
 					{% endfor %}
@@ -88,7 +88,7 @@
 						<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"
 							style="width: {{ torrent.progress }}%" data-id="{{ torrent.hash }}">
 							<div
-								class="progress-bar progress-bar-striped progress-bar-animated bg-{{ (filterOptions.values()|list)[i]['color'] }}">
+								class="progress-bar progress-bar-striped progress-bar-animated bg-{{ filterOptions[tags[i]]['color'] }}">
 								{{ torrent.name }}
 							</div>
 						</div>

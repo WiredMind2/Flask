@@ -126,16 +126,19 @@ class App(Flask, Utils):
 
 	@route('/anime_info/<id>')
 	def anime_info(self, id):
-		tags = ("SEEN", "WATCHING", "WATCHLIST", "NONE")
-
+		user = self.get_user()
+		
 		reload = request.values.get('reload', False)
 		if reload:
 			# Require login
-			user = self.get_user()
 			if user:
 				self.main.api.anime(id)
 
 		anime = self.db.get(id, 'anime')
+		if user:
+			data = self.main.getDatabase().sql('SELECT tag, liked FROM user_tags WHERE user_id=:user_id AND anime_id=:anime_id', {'user_id': user['id'], 'anime_id': id})
+			if data:
+				anime.tag, anime.like = data[0]
 
 		source = self.main.getFolder(id)
 		episodes = self.main.getEpisodes(source)
@@ -143,7 +146,7 @@ class App(Flask, Utils):
 		progress = self.get_torrents_progress(id)
 		torrents = [{'hash': k} | v for k, v in progress.items()]
 
-		return render_template('anime_info.jinja', anime=anime, tags=tags, episodes=episodes, torrents=torrents)
+		return render_template('anime_info.jinja', anime=anime, episodes=episodes, torrents=torrents)
 
 	@route('/disconnected')
 	def disconnected(self):
@@ -184,8 +187,8 @@ class App(Flask, Utils):
 
 		id = int(id)
 		try:
-			self.main.set_tag(id, tag, user.id)
-		except:
+			self.main.set_tag(id, tag, user['id'])
+		except Exception as e:
 			ok = False
 		else:
 			ok = True
@@ -211,9 +214,13 @@ class App(Flask, Utils):
 			try:
 				if not force_api:
 					animelist = self.main.searchDb(terms)
-					animelist = list(animelist)
+					if animelist is not False:
+						animelist = list(animelist)
+					else:
+						animelist = []
 	 
 				if force_api or len(animelist) == 0:
+					print(f'Search with APIs: {terms}')
 					self.main.stopSearch = False
 					animelist = self.main.api.searchAnime(
 						terms, limit=self.main.animePerPage)
@@ -329,11 +336,6 @@ class App(Flask, Utils):
 			val = thread.get(timeout=None)
 
 		empty = thread.empty()
-
-		for i, torrent in enumerate(out):
-			if not isinstance(torrent['link'], dict):
-				torrent['link'] = torrent['link'].__dict__
-
 		return jsonify({'data': out, 'empty': empty}, )
 
 	@route('/download/<id>')
@@ -392,7 +394,7 @@ class App(Flask, Utils):
 app = App()
 
 if __name__ == '__main__':
-	app.run(debug=True)
+	app.run(debug=True, threaded=True)
 	# while True:
 	# 	try:
 	# 		app.run(debug=True)
