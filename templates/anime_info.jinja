@@ -6,7 +6,7 @@
 {{ head.render_head(anime.title) }}
 
 <body class="bg-secondary d-flex flex-column min-vh-100">
-	{{ header.render_header(False, url_for('index') ) }}
+	{{ header.render_header(False, origin or url_for('index') ) }}
 
 	<script>
 		function updateTag(id, tag) {

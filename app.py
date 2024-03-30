@@ -4,6 +4,7 @@ import random
 import string
 import subprocess
 import time
+from urllib.parse import urlparse
 from flask import Flask, Response, abort, g, get_template_attribute, jsonify, render_template, request, session, stream_with_context
 import jwt
 import secret
@@ -44,6 +45,7 @@ def require_login(func):
 		if connected:
 			return func(self, *args, **kwargs)
 		else:
+			# return func(self, *args, **kwargs)
 			return self.disconnected()
 
 	return wrapper
@@ -86,7 +88,6 @@ class App(Flask, Utils):
 		data = {k: eval(f'constants.{k}') for k in dir(
 			constants) if k not in constants.__builtins__.keys() and k[:2] != '__'}
 		data['user'] = self.get_user()
-		print('user', data['user'])
 		g.user = data['user']
 		return data
 
@@ -117,6 +118,8 @@ class App(Flask, Utils):
 				"DEFAULT", listrange=(0, 50), user_id=user_id)
 			animelist = list(animelist)
 		else:
+			if not user_id:
+				return self.disconnected()
 			animelist, nextList = self.main.getAnimelist(
 				tag, listrange=(0, 50), user_id=user_id)
 			animelist = list(animelist)
@@ -128,6 +131,14 @@ class App(Flask, Utils):
 	def anime_info(self, id):
 		user = self.get_user()
 		
+		origin = request.referrer
+		if origin:
+			parsed = urlparse(origin)
+			if parsed.path != '/':
+				origin = None
+		else:
+			origin = None
+
 		reload = request.values.get('reload', False)
 		if reload:
 			# Require login
@@ -140,13 +151,13 @@ class App(Flask, Utils):
 			if data:
 				anime.tag, anime.like = data[0]
 
-		source = self.main.getFolder(id)
+		source = self.main.getFolder(anime=anime)
 		episodes = self.main.getEpisodes(source)
 
 		progress = self.get_torrents_progress(id)
 		torrents = [{'hash': k} | v for k, v in progress.items()]
 
-		return render_template('anime_info.jinja', anime=anime, episodes=episodes, torrents=torrents)
+		return render_template('anime_info.jinja', anime=anime, episodes=episodes, torrents=torrents, origin=origin)
 
 	@route('/disconnected')
 	def disconnected(self):
@@ -187,7 +198,7 @@ class App(Flask, Utils):
 
 		id = int(id)
 		try:
-			self.main.set_tag(id, tag, user['id'])
+			self.main.set_tag(id, tag.upper(), user['id'])
 		except Exception as e:
 			ok = False
 		else:
@@ -236,50 +247,65 @@ class App(Flask, Utils):
 
 		return render(animelist=animelist, count=1, page=1)
 
-	@route('/watch/<id>/<episode>')
+	@route('/watch/<id>/<episode>', methods=["GET"])
 	@require_login
 	def watch(self, id, episode):
 		web_root = '/var/www/anime.tetrazero.com/Flask/'
 		root = web_root + f'static/data/cache/{id}'
-		if not os.path.exists(root):
-			os.makedirs(root)
+		try:
+			if not os.path.exists(root):
+				os.makedirs(root)
+		except PermissionError:
+				abort(504, "Can't create the necessary folders!")
 
 		source = self.main.getFolder(id) + f'/{episode}.mkv'
 
 		if not os.path.exists(source):
 			abort(404)
 
-		stream_file = f'stream_{episode}.m3u8'
+		filename = f'stream_{episode}'
+		stream_file = f'{filename}.m3u8'
+		
 		stream_url = f'data/cache/{id}/{stream_file}'
 		stream = f'{root}/{stream_file}'
-		if not os.path.exists(stream):
-			command = [
-				'ffmpeg',
-				'-loglevel', 'error',
-				'-i', f'{source}',
-				'-preset', 'ultrafast',
-				'-tune', 'zerolatency',
-				'-vf', f"subtitles='{source}'",
-				# '-c:s', 'mov_text',
-				'-c:v', 'libx264',
-				'-c:a', 'aac',
-				# '-map', '0',
-				# '-flags', '+global_header',
-				'-f', 'hls',
-				'-hls_time', '5',
-				'-hls_list_size', '0',
-				'-hls_flags', 'single_file',
-				'-movflags', '+faststart',
-				'-map_metadata', '0',
-				'-y',
-				f'{stream}'
-			]
-			# command = ' '.join(command)
-			# print(command)
-			# , stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-			process = subprocess.Popen(command, shell=False)
 
-			while not os.path.exists(stream):
+		stream_data = f'{root}/{filename}.ts'
+
+		if not os.path.exists(stream):
+			print('Started stream')
+
+			try:
+				command = [
+					'ffmpeg',
+					'-loglevel', 'error',
+					'-i', f'{source}',
+					'-preset', 'ultrafast',
+					'-tune', 'zerolatency',
+					'-vf', f"subtitles='{source}'",
+					# '-c:s', 'mov_text',
+					'-c:v', 'libx264',
+					'-c:a', 'aac',
+					# '-map', '0',
+					# '-flags', '+global_header',
+					'-f', 'hls',
+					'-hls_time', '5',
+					'-hls_list_size', '0',
+					'-hls_flags', 'single_file',
+					'-movflags', '+faststart',
+					'-map_metadata', '0',
+					'-y',
+					f'{stream}'
+				]
+				# command = ' '.join(command)
+				# print(command)
+				# , stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+				process = subprocess.Popen(command, shell=False)
+			except Exception as e:
+				abort(500)
+
+			print('Waiting for stream')
+
+			while not os.path.exists(stream) or not os.path.exists(stream_data):
 				time.sleep(0.1)
 
 		# return Response(open(stream, 'rb').read(), mimetype='application/vnd.apple.mpegurl')
@@ -287,17 +313,29 @@ class App(Flask, Utils):
 
 		return render_template('video.jinja', stream_url=stream_url, id=id, episode=episode)
 
-	@route('/torrents/<id>')
+	@route('/watch/<id>/<episode>', methods=["POST"])
+	@require_login
+	def watch_post(self, id, episode):
+		pass
+
+	@route('/torrents/<id>', methods=["GET", "POST"])
 	@require_login
 	def torrents(self, id):
+		if request.method == "POST":
+			custom_search = request.values.get('custom_search', None)
+		else:
+			custom_search = None
 
 		timestamp = str(int(time.time()))
 		random_chars = ''.join(random.choices(
 			string.ascii_uppercase + string.digits, k=6))
 		search_id = f'{timestamp}-{random_chars}'
 
-		data = self.main.database(id=id, table="anime")
-		titles = data.title_synonyms
+		data = self.main.database.get(id=id, table="anime")
+		if custom_search:
+			titles = [custom_search]
+		else:
+			titles = data.title_synonyms
 
 		testing = False
 		if testing:
@@ -357,15 +395,20 @@ class App(Flask, Utils):
 
 	def get_user(self):
 		token = request.cookies.get('Token', None)
+		# default = {'id': 1, 'username': 'Guest'}
+		default = None
 		if not token:
-			return None
+			return default
 
 		try:
 			data = jwt.decode(token, secret.JWT_SECRET_KEY,
 							  algorithms=["HS256"])
 		except jwt.InvalidSignatureError:
 			# Someone tried to hack me
-			return None
+			return default
+		except jwt.exceptions.ExpiredSignatureError:
+			# Login has expired
+			return default
 
 		return data['data']
 
